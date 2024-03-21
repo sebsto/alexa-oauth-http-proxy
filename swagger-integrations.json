@@ -1,0 +1,77 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "2016-10-08T10:45:21Z",
+    "title": "AccountLinkingProxy"
+  },
+  "schemes": [
+    "https"
+  ],
+  "paths": {
+    "/": {
+      "x-amazon-apigateway-any-method": {
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "200 response",
+            "schema": {
+              "$ref": "#/definitions/Empty"
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "responses": {
+            "default": {
+              "statusCode": "200"
+            }
+          },
+          "requestParameters": {
+            "integration.request.header.Host": "stageVariables.authenticationHostname"
+          },
+          "uri": "https://${stageVariables.authenticationURL}",
+          "passthroughBehavior": "when_no_match",
+          "httpMethod": "ANY",
+          "type": "http_proxy"
+        }
+      }
+    },
+    "/token": {
+      "x-amazon-apigateway-any-method": {
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "200 response",
+            "schema": {
+              "$ref": "#/definitions/Empty"
+            }
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "responses": {
+            "default": {
+              "statusCode": "200"
+            }
+          },
+          "requestParameters": {
+            "integration.request.header.Accept-Encoding": "''",
+            "integration.request.header.Host": "stageVariables.accessTokenHostname"
+          },
+          "uri": "https://${stageVariables.accessTokenURL}",
+          "passthroughBehavior": "when_no_match",
+          "httpMethod": "ANY",
+          "type": "http_proxy"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Empty": {
+      "type": "object",
+      "title": "Empty Schema"
+    }
+  }
+}

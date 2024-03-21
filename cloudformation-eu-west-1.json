@@ -1,0 +1,191 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+
+    "Description": "Deploy an HTTP Proxy API Gateway",
+
+    "Parameters": {
+        "AuthorizationURL": {
+            "Type": "String",
+            "Default": "https://www.amazon.com/ap/oa",
+            "Description": "The value of the Authenitcation URL field in Alexa Developer Console"
+        },
+        "AccessTokenURL": {
+            "Type": "String",
+            "Default": "https://api.amazon.com/auth/o2/token",
+            "Description": "The value of the Access Token URI field in Alexa Developer Console"
+        }
+    },
+
+    "Resources": {
+
+        "LambdaExecutionRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [{
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": ["lambda.amazonaws.com"]
+                        },
+                        "Action": ["sts:AssumeRole"]
+                    }]
+                },
+                "Path": "/",
+                "Policies": [{
+                    "PolicyName": "root",
+                    "PolicyDocument": {
+                        "Version": "2012-10-17",
+                        "Statement": [{
+                            "Effect": "Allow",
+                            "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+                            "Resource": "arn:aws:logs:*:*:*"
+                        }]
+                    }
+                }]
+            }
+        },
+        "HostnameLambda": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Code": {
+                    "S3Bucket": "eu.alexademo.ninja",
+                    "S3Key": "httpproxy/lambda/hostname_lambda_function.zip"
+                },
+                "Handler": "index.handler",
+                "Runtime": "nodejs4.3",
+                "Timeout": "30",
+                "Role": {
+                    "Fn::GetAtt": ["LambdaExecutionRole", "Arn"]
+                }
+            }
+        },
+
+        "HostnameFunction": {
+            "Type": "Custom::HostnameFunction",
+            "Properties": {
+                "ServiceToken": {
+                    "Fn::GetAtt": ["HostnameLambda", "Arn"]
+                },
+                "AuthenticationURL": {
+                    "Ref": "AuthorizationURL"
+                },
+                "AccessTokenURL": {
+                    "Ref": "AccessTokenURL"
+                }
+            }
+        },
+
+        "ApiGatewayCloudWatchLogsRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [{
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": ["apigateway.amazonaws.com"]
+                        },
+                        "Action": ["sts:AssumeRole"]
+                    }]
+                },
+                "Policies": [{
+                    "PolicyName": "ApiGatewayLogsPolicy",
+                    "PolicyDocument": {
+                        "Version": "2012-10-17",
+                        "Statement": [{
+                            "Effect": "Allow",
+                            "Action": [
+                                "logs:CreateLogGroup",
+                                "logs:CreateLogStream",
+                                "logs:DescribeLogGroups",
+                                "logs:DescribeLogStreams",
+                                "logs:PutLogEvents",
+                                "logs:GetLogEvents",
+                                "logs:FilterLogEvents"
+                            ],
+                            "Resource": "*"
+                        }]
+                    }
+                }]
+            }
+        },
+        "ApiGatewayAccount": {
+            "Type": "AWS::ApiGateway::Account",
+            "Properties": {
+                "CloudWatchRoleArn": {
+                    "Fn::GetAtt": ["ApiGatewayCloudWatchLogsRole", "Arn"]
+                }
+            }
+        },
+
+        "HTTPProxyAPI": {
+            "Type": "AWS::ApiGateway::RestApi",
+            "Properties": {
+                "BodyS3Location": {
+                    "Bucket": "eu.alexademo.ninja",
+                    "Key": "httpproxy/swagger-integrations.json"
+                },
+                "Description": "HTTP Proxy",
+                "FailOnWarnings": true,
+                "Name": "HTTP Proxy"
+            }
+        },
+        "HTTPProxyDeployment": {
+            "Type": "AWS::ApiGateway::Deployment",
+            "Properties": {
+                "RestApiId": {
+                    "Ref": "HTTPProxyAPI"
+                },
+                "StageName": "DebugStage",
+                "StageDescription": {
+                    "Description": "Debugging Stage with all logging enabled",
+                    "MethodSettings": [{
+                        "DataTraceEnabled": true,
+                        "MetricsEnabled": true,
+                        "ResourcePath": "/*",
+                        "HttpMethod": "*",
+                        "LoggingLevel": "INFO"
+                    }],
+                    "Variables": {
+                        "authenticationHostname": {
+                            "Fn::GetAtt": ["HostnameFunction", "authenticationHostname"]
+                        },
+                        "authenticationURL": {
+                            "Fn::GetAtt": ["HostnameFunction", "authenticationURL"]
+                        },
+                        "accessTokenHostname": {
+                            "Fn::GetAtt": ["HostnameFunction", "accessTokenHostname"]
+                        },
+                        "accessTokenURL": {
+                            "Fn::GetAtt": ["HostnameFunction", "accessTokenURL"]
+                        }
+                    }
+                }
+            }
+        }
+    },
+
+    "Outputs": {
+        "ProxyAuthenticationURL": {
+            "Description": "The URL of your proxy, to be used as 'Authentication URL'",
+            "Value": {
+                "Fn::Join": ["", ["https://", {
+                    "Ref": "HTTPProxyAPI"
+                }, ".execute-api.", {
+                    "Ref": "AWS::Region"
+                }, ".amazonaws.com/DebugStage"]]
+            }
+        },
+        "ProxyAccessTokenURL": {
+            "Description": "The URL of your proxy, to be used as 'Access Token URI'",
+            "Value": {
+                "Fn::Join": ["", ["https://", {
+                    "Ref": "HTTPProxyAPI"
+                }, ".execute-api.", {
+                    "Ref": "AWS::Region"
+                }, ".amazonaws.com/DebugStage/token"]]
+            }
+        }
+    }
+}
