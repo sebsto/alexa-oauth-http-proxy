@@ -1,7 +1,8 @@
 # How to Set up Amazon API Gateway as a Proxy to Debug Account Linking
 
-[Originally published on the Alexa Developer Blog](https://developer.amazon.com/en-US/blogs/alexa/post/TxQN2C04S97C0J/how-to-set-up-amazon-api-gateway-as-a-proxy-to-debug-account-linkin.html)
-Date : 10 November 2016
+[Originally published on the Alexa Developer Blog](https://developer.amazon.com/en-US/blogs/alexa/post/TxQN2C04S97C0J/how-to-set-up-amazon-api-gateway-as-a-proxy-to-debug-account-linkin.html) (10 November 2016)
+
+---
 
 *This technical tutorial by Sr Solutions Architect for Amazon Alexa, [Sebastien Stormacq](https://www.linkedin.com/in/sebastienstormacq/) will show you how to use Amazon API Gateway and configure it to act as a HTTP Proxy, sitting between Alexa and your OAuth server.*
 
