@@ -45,91 +45,92 @@ CloudFormation is an AWS service that enables you to describe your AWS resources
 
 You can download the CloudFormation templates from this link. Chose the template matching the region where you will execute it, either us-east-1 (Northern Virginia) or eu-west-1 (Ireland)
 
-cloudformation-us-east-1.json
+- [cloudformation-us-east-1.json](https://raw.githubusercontent.com/sebsto/alexa-oauth-http-proxy/main/cloudformation-us-east-1.json)
 
-cloudformation-eu-west-1.json
+- [cloudformation-eu-west-1.json](https://raw.githubusercontent.com/sebsto/alexa-oauth-http-proxy/main/cloudformation-eu-west-1.json)
 
 When executing the template, it will prompt you for the OAuth Authentication URL and the Access Token URL and then create an API Gateway and configure it as in HTTP Proxy Integration mode for you. It will then output two URLs, one for authentication and the other for the access token. You can use these URLs in the Alexa Developer console to configure account linking on your skill.
 
-Warning : this template has been optimized to run from the Northern Virginia or Ireland regions (us-east-1 and eu-west-1) and will not work from other regions. In the rest of this document, we are assuming you are using Northern Virginia (us-east-1) region, do not forget to adjust slightly for Ireland (eu-east-1).
+**Warning** : this template has been optimized to run from the Northern Virginia or Ireland regions (`us-east-1` and `eu-west-1`) and will not work from other regions. In the rest of this document, we are assuming you are using Northern Virginia (`us-east-1`) region, do not forget to adjust slightly for Ireland (`eu-east-1`).
 
 Let’s go through this step by step:
-1.  In the AWS Console, open CloudFormation and verify you’re well connected to N. Virginia (us-east-1) region, then click on “Create Stack”
+1.  In the AWS Console, open CloudFormation and verify you’re well connected to N. Virginia (`us-east-1`) region, then click on “Create Stack”
 
-
+![Image2](/images/APIGateway_Image20.jpg)
 
 2.  Click on “Choose File” and select cloudformation-us-east-1.json downloaded from the link above.
 
-
+![Image21](/images/APIGateway_Image21.jpg)
 
 3.  Click Next on the bottom on the screen
 
 4.  Give your stack a name, such as “HTTPProxy” and the two URLs needed to connect to on your OAuth server; the authentication URL and the access token URL. The template gives the ones for “Login With Amazon” by default, be sure to type the correct values for your authentication server. Click “Next” when ready.
 
-
+![Image22](/images/APIGateway_Image22.jpg)
 
 5.  Ignore the settings on the following screen and click “Next” again.
 
 6.  On the last screen, review your settings and click on the checkbox “I acknowledge that AWS CloudFormation might create IAM resources.”
 
+    ![Image23](/images/APIGateway_Image23.jpg)
 
+     The reason why this box is present is because the template asks CloudFormation to create an IAM role to authorize API Gateway to send its log to CloudWatch Logs. The template also creates a Lambda function to perform on the fly some URL parsing required to configure the API Gateway. A second IAM role is created to allow the Lambda function to send its own logs to CloudWatch Logs.
 
-The reason why this box is present is because the template asks CloudFormation to create an IAM role to authorize API Gateway to send its log to CloudWatch Logs. The template also creates a Lambda function to perform on the fly some URL parsing required to configure the API Gateway. A second IAM role is created to allow the Lambda function to send its own logs to CloudWatch Logs.
+    The creation of the stack should take 1-2 minutes; maybe time for a very short coffee break, like an expresso. When you return, the stack status must be CREATE_COMPLETED. If you have an error (ROLLBACK_COMPLETED), click on the “Event” tab just below and scroll down to search for the very first error in the stack. Usually error messages are descriptive enough to help you figure out what went wrong.
 
-The creation of the stack should take 1-2 minutes; maybe time for a very short coffee break, like an expresso. When you return, the stack status must be CREATE_COMPLETED. If you have an error (ROLLBACK_COMPLETED), click on the “Event” tab just below and scroll down to search for the very first error in the stack. Usually error messages are descriptive enough to help you figure out what went wrong.
+    ![Image24](/images/APIGateway_Image24.jpg)
 
-
-
-Congratulations! Now the API Gateway is up and running, ready to accept requests. Next steps are to configure Account Linking in the Alexa developer console to point to the API Gateway.
+    Congratulations! Now the API Gateway is up and running, ready to accept requests. Next steps are to configure Account Linking in the Alexa developer console to point to the API Gateway.
 
 7.  Click on the “Outputs” tab to copy / paste the two URLs that have been created for you and report them to the Alexa developer console.
 
+    ![Image7](/images/APIGateway_Image7.jpg)
 
 
-Pay attention when copy / pasting. ProxyAuthenticationURL goes to “Authentication URL” in the Alexa developer console and ProxyAccessTokenURL goes to “Access Token URI” in the Alexa developer console.
+    Pay attention when copy / pasting. ProxyAuthenticationURL goes to “Authentication URL” in the Alexa developer console and ProxyAccessTokenURL goes to “Access Token URI” in the **Alexa developer console**.
  
-
-
-
- 
+    ![Image25](/images/APIGateway_Image25.jpg)
 
 8.  Trigger an authentication on your skill and test your setup.
 
-If everything goes well, and if account linking was working before making this change, it must still work. The difference now is that all the HTTP traffic between Alexa and your OAuth server is logged into CloudWatch Logs.
+    If everything goes well, and if account linking was working before making this change, it must still work. The difference now is that all the HTTP traffic between Alexa and your OAuth server is logged into CloudWatch Logs.
 
-In the AWS Console, open CloudWatch and click on Logs. You should see three new Logs Groups.
+    In the AWS Console, open CloudWatch and click on Logs. You should see three new Logs Groups.
 
+    ![Image26](/images/APIGateway_Image26.jpg)
 
+    The “Lambda” one contains the log of a temporary lambda function used during the stack creation only.
 
-The “Lambda” one contains the log of a temporary lambda function used during the stack creation only.
-The “API Gateway Execution” contains the log of your traffic. This group contains hundreds of streams, you can sort them by date to see the ones that recently received new logs.
+    The “API Gateway Execution” contains the log of your traffic. This group contains hundreds of streams, you can sort them by date to see the ones that recently received new logs.
 
 9.  Click on “API-Gateway-Execution-Log_*” to open the group, sort the streams by date and click on the last one or the one before last. One contains the request to your Authentication URL, the other the request to your Access Token URL.
 
-By looking at the logs, you can see entries for your request (path, query string, headers, body) and for the response.
+    By looking at the logs, you can see entries for your request (path, query string, headers, body) and for the response.
 
+    ![Image27](/images/APIGateway_Image27.jpg)
 
-
-Enjoy! You know have a full HTTP logging system to debug your OAuth configuration.
+**Enjoy! You know have a full HTTP logging system to debug your OAuth configuration.**
 
 Once you will finish your debugging session, do not forget to tear down the infrastructure to minimize your costs and exposure. You can delete the entire setup from the AWS CloudFormation console, just click on “Delete Stack” to delete everything except the log files. Log files are preserved for you for later analysis.
 
-How much does it cost?
+### How much does it cost?
+
 API Gateway is a very cost effective service, AWS will charge you $3.5 per million requests received + $0.09 / GB for data transfer.
 
 AWS Cloudwatch Logs will charge you $0.50 / GB for storage log files and it is very unlikely you pass the part of 100 Mb for a single logging session.
 
 Hypothetically, let's say you are running a debugging session with 10.000 HTTP requests, 200 bytes each, it will cost you
 
-0,01 million requests x $3.5 = $0.035
+- 0,01 million requests x $3.5 = $0.035
 
-200 bytes x 10.000 x 2 (in and out) = 0.004 Gb data transfer x $0.09 / Gb = $0.00039
+- 200 bytes x 10.000 x 2 (in and out) = 0.004 Gb data transfer x $0.09 / Gb = $0.00039
 
-Logs (assuming logs are 10x more verbose than content) : 0.04 Gb x $0.05 / Gb = $0.002
+- Logs (assuming logs are 10x more verbose than content) : 0.04 Gb x $0.05 / Gb = $0.002
 
-Total: $0.035 + $0.00039 + $0.002 = $0.03739
+- Total: $0.035 + $0.00039 + $0.002 = $0.03739
 
 In this scenario, running debugging sessions for a few days with thousands of HTTP requests will cost you less than a dime.
 
-Keep us posted
-Are you having problems following these instructions? Or the API gateway configuration does not work with your OAuth server? Let us know by posting a message in the Alexa Developer forums or by tweeting us @AlexaDevs.
+### Keep us posted
+
+Are you having problems following these instructions? Or the API gateway configuration does not work with your OAuth server? Let us know by posting a message in the [Alexa Developer forums](https://developer.amazon.com/en-US/alexa/alexa-skills-kit/new/get-connected) or by tweeting us [@AlexaDevs](https://twitter.com/alexadevs).
